@@ -1,0 +1,14 @@
+## Interface: 20504
+## Title: ActionTracker
+## Notes: Comprehensive statistics tracker for abilities, combat, economy, and more
+## Author: Michael Malura
+## Version: 1.0.0
+## SavedVariables: ActionTrackerDB
+## OptionalDeps: Ace3, LibDataBroker-1.1, LibDBIcon-1.0
+
+embeds.xml
+Bindings.xml
+Core.lua
+Data.lua
+UI.lua
+Config.lua
