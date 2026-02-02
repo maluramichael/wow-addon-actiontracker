@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.2] - 2026-02-02
+
+### Fixed
+- Fixed embeds.xml to properly load bundled libraries (matching other addons)
+- Local dev: symlink libs/ folder or download libs manually (gitignored)
+
 ## [1.1.1] - 2026-02-02
 
 ### Fixed

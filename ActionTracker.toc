@@ -2,7 +2,7 @@
 ## Title: |cFF00D1FFMM|r ActionTracker
 ## Notes: Comprehensive statistics tracker for abilities, combat, economy, and more
 ## Author: Michael Malura
-## Version: 1.1.1
+## Version: 1.1.2
 ## X-Curse-Project-ID: 1451687
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## Category-enUS: Combat
