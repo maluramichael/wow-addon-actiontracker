@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1] - 2026-02-02
+
+### Fixed
+- Fixed embeds.xml errors when libs folder doesn't exist locally
+- Now relies on Ace3 addon being installed (OptionalDeps)
+- Minimap button is optional (works if LibDataBroker/LibDBIcon available)
+
 ## [1.1.0] - 2026-02-02
 
 ### Added
