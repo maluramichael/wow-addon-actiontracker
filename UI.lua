@@ -34,7 +34,7 @@ function ActionTracker:ShowUI()
 
     -- Create tab group
     local tabGroup = AceGUI:Create("TabGroup")
-    tabGroup:SetLayout("Flow")
+    tabGroup:SetLayout("Fill")
     tabGroup:SetTabs({
         {text = "Combat", value = "combat"},
         {text = "Economy", value = "economy"},
@@ -63,14 +63,21 @@ end
 function ActionTracker:RefreshTabContent(container, tab)
     container:ReleaseChildren()
 
+    -- Create scrollable container for all tab content
+    local scroll = AceGUI:Create("ScrollFrame")
+    scroll:SetLayout("Flow")
+    scroll:SetFullWidth(true)
+    scroll:SetFullHeight(true)
+    container:AddChild(scroll)
+
     if tab == "combat" then
-        self:DrawCombatTab(container)
+        self:DrawCombatTab(scroll)
     elseif tab == "economy" then
-        self:DrawEconomyTab(container)
+        self:DrawEconomyTab(scroll)
     elseif tab == "lifestyle" then
-        self:DrawLifestyleTab(container)
+        self:DrawLifestyleTab(scroll)
     elseif tab == "account" then
-        self:DrawAccountTab(container)
+        self:DrawAccountTab(scroll)
     end
 end
 
@@ -103,7 +110,7 @@ function ActionTracker:DrawCombatTab(container)
 
     -- Abilities section
     local abilitiesGroup = AceGUI:Create("InlineGroup")
-    abilitiesGroup:SetTitle("Top Abilities")
+    abilitiesGroup:SetTitle("Top Abilities (Top 15)")
     abilitiesGroup:SetFullWidth(true)
     abilitiesGroup:SetLayout("List")
     container:AddChild(abilitiesGroup)
@@ -116,28 +123,22 @@ function ActionTracker:DrawCombatTab(container)
         noData:SetFullWidth(true)
         abilitiesGroup:AddChild(noData)
     else
-        -- Create scrolling frame for abilities
-        local scroll = AceGUI:Create("ScrollFrame")
-        scroll:SetLayout("List")
-        scroll:SetFullWidth(true)
-        scroll:SetHeight(200)
-        abilitiesGroup:AddChild(scroll)
-
         for i, ability in ipairs(sorted) do
+            if i > 15 then break end
             local row = AceGUI:Create("Label")
             local damageStr = ability.damage > 0 and string.format(" | %s dmg", self:FormatNumber(ability.damage)) or ""
             local healStr = ability.healing > 0 and string.format(" | %s heal", self:FormatNumber(ability.healing)) or ""
             row:SetText(string.format("|cff00ff00%d.|r %s: |cffffffff%d uses|r%s%s",
                 i, ability.name, ability.count, damageStr, healStr))
             row:SetFullWidth(true)
-            scroll:AddChild(row)
+            abilitiesGroup:AddChild(row)
         end
     end
 
     -- Kills section
     if combat.kills and next(combat.kills) then
         local killsGroup = AceGUI:Create("InlineGroup")
-        killsGroup:SetTitle("Kills by Mob")
+        killsGroup:SetTitle("Kills by Mob (Top 15)")
         killsGroup:SetFullWidth(true)
         killsGroup:SetLayout("List")
         container:AddChild(killsGroup)
@@ -148,18 +149,12 @@ function ActionTracker:DrawCombatTab(container)
         end
         table.sort(killsSorted, function(a, b) return a.count > b.count end)
 
-        local scroll = AceGUI:Create("ScrollFrame")
-        scroll:SetLayout("List")
-        scroll:SetFullWidth(true)
-        scroll:SetHeight(100)
-        killsGroup:AddChild(scroll)
-
         for i, kill in ipairs(killsSorted) do
-            if i > 20 then break end
+            if i > 15 then break end
             local row = AceGUI:Create("Label")
             row:SetText(string.format("|cff00ff00%d.|r %s: |cffffffff%d kills|r", i, kill.name, kill.count))
             row:SetFullWidth(true)
-            scroll:AddChild(row)
+            killsGroup:AddChild(row)
         end
     end
 end

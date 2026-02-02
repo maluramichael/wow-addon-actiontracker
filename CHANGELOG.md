@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1] - 2026-02-02
+
+### Fixed
+- Main window content is now scrollable (fixes overflow with Kills by Mob section)
+- Limited Top Abilities and Kills by Mob to top 15 entries for cleaner display
+
 ## [1.0.0] - 2026-02-02
 
 ### Added
