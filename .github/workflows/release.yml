@@ -41,6 +41,8 @@ jobs:
 
       - name: Package and Upload to CurseForge
         uses: BigWigsMods/packager@v2
+        with:
+          args: '-g bcc'
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
