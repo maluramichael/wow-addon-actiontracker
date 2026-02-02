@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.3] - 2026-02-02
+
+### Fixed
+- Fixed Bindings.xml format (removed invalid attributes, WoW auto-loads it)
+- Minimap button now works reliably (embedded LibDataBroker and LibDBIcon)
+
 ## [1.1.2] - 2026-02-02
 
 ### Fixed
