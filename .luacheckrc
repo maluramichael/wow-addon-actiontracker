@@ -12,16 +12,10 @@ exclude_files = {
 
 -- Ignore common WoW addon patterns
 ignore = {
-    "211/_.*",      -- Unused variables starting with _
-    "211/addonName", -- Common unused addon name
-    "212/self",     -- Unused self in methods
-    "212/event",    -- Unused event argument
-    "212/msg",      -- Unused msg argument
-    "212/questId",  -- Unused questId
-    "212/mobGUID",  -- Unused mobGUID
-    "213",          -- Unused loop variables
+    "21.",          -- All unused variable warnings (W211, W212, W213)
+    "231",          -- Variable never accessed
     "311",          -- Value assigned to variable is unused
-    "631",          -- Line too long (disabled via max_line_length)
+    "631",          -- Line too long
 }
 
 -- Globals we define
