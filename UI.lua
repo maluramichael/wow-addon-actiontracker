@@ -99,6 +99,7 @@ function ActionTracker:DrawCombatTab(container)
         {label = "Damage Taken", value = self:FormatNumber(combat.totalDamageTaken)},
         {label = "Total Kills", value = tostring(combat.totalKills)},
         {label = "Deaths", value = tostring(combat.deaths)},
+        {label = "XP from Kills", value = self:FormatNumber(combat.xpFromKills or 0)},
     }
 
     for _, stat in ipairs(stats) do
@@ -163,34 +164,69 @@ function ActionTracker:DrawEconomyTab(container)
     local data = self:GetCharacterData()
     local economy = data.economy
 
-    local group = AceGUI:Create("InlineGroup")
-    group:SetTitle("Economy Statistics")
-    group:SetFullWidth(true)
-    group:SetLayout("Flow")
-    container:AddChild(group)
+    -- Gold Summary
+    local goldGroup = AceGUI:Create("InlineGroup")
+    goldGroup:SetTitle("Gold Summary")
+    goldGroup:SetFullWidth(true)
+    goldGroup:SetLayout("List")
+    container:AddChild(goldGroup)
 
     local goldEarned = economy.goldEarned or 0
     local goldSpent = economy.goldSpent or 0
 
-    local stats = {
-        {label = "Gold Earned", value = GetCoinTextureString(goldEarned)},
-        {label = "Gold Spent", value = GetCoinTextureString(goldSpent)},
+    local goldStats = {
+        {label = "Total Gold Earned", value = GetCoinTextureString(goldEarned)},
+        {label = "Total Gold Spent", value = GetCoinTextureString(goldSpent)},
         {label = "Net Gold", value = GetCoinTextureString(goldEarned - goldSpent)},
-        {label = "Items Looted", value = tostring(economy.itemsLooted or 0)},
-        {label = "Quests Completed", value = tostring(economy.questsCompleted or 0)},
     }
 
-    for _, stat in ipairs(stats) do
+    for _, stat in ipairs(goldStats) do
         local label = AceGUI:Create("Label")
         label:SetText(string.format("|cffffd700%s:|r %s", stat.label, stat.value))
         label:SetFullWidth(true)
-        group:AddChild(label)
+        goldGroup:AddChild(label)
     end
 
-    local note = AceGUI:Create("Label")
-    note:SetText("\n|cff888888Economy tracking is basic in v1.0. More detailed tracking coming in future updates.|r")
-    note:SetFullWidth(true)
-    container:AddChild(note)
+    -- Gold Sources
+    local sourcesGroup = AceGUI:Create("InlineGroup")
+    sourcesGroup:SetTitle("Gold by Source")
+    sourcesGroup:SetFullWidth(true)
+    sourcesGroup:SetLayout("List")
+    container:AddChild(sourcesGroup)
+
+    local sourceStats = {
+        {label = "From Vendors (selling)", value = GetCoinTextureString(economy.goldFromVendor or 0)},
+        {label = "From Mail", value = GetCoinTextureString(economy.goldFromMail or 0)},
+        {label = "From Loot", value = GetCoinTextureString(economy.goldFromLoot or 0)},
+        {label = "From Quests", value = GetCoinTextureString(economy.goldFromQuest or 0)},
+    }
+
+    for _, stat in ipairs(sourceStats) do
+        local label = AceGUI:Create("Label")
+        label:SetText(string.format("  |cff888888%s:|r %s", stat.label, stat.value))
+        label:SetFullWidth(true)
+        sourcesGroup:AddChild(label)
+    end
+
+    -- XP & Quests
+    local xpGroup = AceGUI:Create("InlineGroup")
+    xpGroup:SetTitle("Experience & Quests")
+    xpGroup:SetFullWidth(true)
+    xpGroup:SetLayout("List")
+    container:AddChild(xpGroup)
+
+    local xpStats = {
+        {label = "Quests Completed", value = tostring(economy.questsCompleted or 0)},
+        {label = "XP from Quests", value = self:FormatNumber(economy.xpFromQuests or 0)},
+        {label = "Items Looted", value = tostring(economy.itemsLooted or 0)},
+    }
+
+    for _, stat in ipairs(xpStats) do
+        local label = AceGUI:Create("Label")
+        label:SetText(string.format("|cffffd700%s:|r %s", stat.label, stat.value))
+        label:SetFullWidth(true)
+        xpGroup:AddChild(label)
+    end
 end
 
 function ActionTracker:DrawLifestyleTab(container)

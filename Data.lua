@@ -18,12 +18,18 @@ function ActionTracker:GetDefaults()
                         deaths = 0,
                         abilities = {},
                         kills = {},
+                        xpFromKills = 0,
                     },
                     economy = {
                         goldEarned = 0,
                         goldSpent = 0,
+                        goldFromVendor = 0,
+                        goldFromMail = 0,
+                        goldFromLoot = 0,
+                        goldFromQuest = 0,
                         itemsLooted = 0,
                         questsCompleted = 0,
+                        xpFromQuests = 0,
                         lastKnownGold = nil,
                     },
                     lifestyle = {
@@ -42,12 +48,18 @@ function ActionTracker:GetDefaults()
                     totalDamageTaken = 0,
                     totalKills = 0,
                     deaths = 0,
+                    xpFromKills = 0,
                 },
                 economy = {
                     goldEarned = 0,
                     goldSpent = 0,
+                    goldFromVendor = 0,
+                    goldFromMail = 0,
+                    goldFromLoot = 0,
+                    goldFromQuest = 0,
                     itemsLooted = 0,
                     questsCompleted = 0,
+                    xpFromQuests = 0,
                 },
                 lifestyle = {
                     timePlayed = 0,
@@ -80,12 +92,18 @@ function ActionTracker:GetCharacterData()
                 deaths = 0,
                 abilities = {},
                 kills = {},
+                xpFromKills = 0,
             },
             economy = {
                 goldEarned = 0,
                 goldSpent = 0,
+                goldFromVendor = 0,
+                goldFromMail = 0,
+                goldFromLoot = 0,
+                goldFromQuest = 0,
                 itemsLooted = 0,
                 questsCompleted = 0,
+                xpFromQuests = 0,
                 lastKnownGold = nil,
             },
             lifestyle = {
@@ -97,11 +115,30 @@ function ActionTracker:GetCharacterData()
         }
     end
 
-    return self.db.profile.characters[charKey]
+    -- Ensure new fields exist for older saved data
+    local data = self.db.profile.characters[charKey]
+    if not data.combat.xpFromKills then data.combat.xpFromKills = 0 end
+    if not data.economy.goldFromVendor then data.economy.goldFromVendor = 0 end
+    if not data.economy.goldFromMail then data.economy.goldFromMail = 0 end
+    if not data.economy.goldFromLoot then data.economy.goldFromLoot = 0 end
+    if not data.economy.goldFromQuest then data.economy.goldFromQuest = 0 end
+    if not data.economy.xpFromQuests then data.economy.xpFromQuests = 0 end
+
+    return data
 end
 
 function ActionTracker:GetAccountData()
-    return self.db.profile.accountWide
+    local data = self.db.profile.accountWide
+
+    -- Ensure new fields exist
+    if not data.combat.xpFromKills then data.combat.xpFromKills = 0 end
+    if not data.economy.goldFromVendor then data.economy.goldFromVendor = 0 end
+    if not data.economy.goldFromMail then data.economy.goldFromMail = 0 end
+    if not data.economy.goldFromLoot then data.economy.goldFromLoot = 0 end
+    if not data.economy.goldFromQuest then data.economy.goldFromQuest = 0 end
+    if not data.economy.xpFromQuests then data.economy.xpFromQuests = 0 end
+
+    return data
 end
 
 -- Tracking Functions
@@ -206,4 +243,48 @@ function ActionTracker:TrackDeath()
 
     charData.combat.deaths = charData.combat.deaths + 1
     accountData.combat.deaths = accountData.combat.deaths + 1
+end
+
+function ActionTracker:TrackXPFromKill(xp)
+    if not xp or xp <= 0 then return end
+
+    local charData = self:GetCharacterData()
+    local accountData = self:GetAccountData()
+
+    charData.combat.xpFromKills = charData.combat.xpFromKills + xp
+    accountData.combat.xpFromKills = accountData.combat.xpFromKills + xp
+end
+
+function ActionTracker:TrackXPFromQuest(xp)
+    if not xp or xp <= 0 then return end
+
+    local charData = self:GetCharacterData()
+    local accountData = self:GetAccountData()
+
+    charData.economy.xpFromQuests = charData.economy.xpFromQuests + xp
+    accountData.economy.xpFromQuests = accountData.economy.xpFromQuests + xp
+end
+
+function ActionTracker:TrackGoldFromSource(amount, source)
+    if not amount or amount <= 0 then return end
+
+    local charData = self:GetCharacterData()
+    local accountData = self:GetAccountData()
+
+    if source == "vendor" then
+        charData.economy.goldFromVendor = charData.economy.goldFromVendor + amount
+        accountData.economy.goldFromVendor = accountData.economy.goldFromVendor + amount
+    elseif source == "mail" then
+        charData.economy.goldFromMail = charData.economy.goldFromMail + amount
+        accountData.economy.goldFromMail = accountData.economy.goldFromMail + amount
+    elseif source == "loot" then
+        charData.economy.goldFromLoot = charData.economy.goldFromLoot + amount
+        accountData.economy.goldFromLoot = accountData.economy.goldFromLoot + amount
+    elseif source == "quest" then
+        charData.economy.goldFromQuest = charData.economy.goldFromQuest + amount
+        accountData.economy.goldFromQuest = accountData.economy.goldFromQuest + amount
+    end
+
+    charData.economy.goldEarned = charData.economy.goldEarned + amount
+    accountData.economy.goldEarned = accountData.economy.goldEarned + amount
 end

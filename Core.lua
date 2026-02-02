@@ -9,6 +9,18 @@ _G["ActionTracker"] = ActionTracker
 -- Player info cache
 local playerGUID = nil
 local playerName = nil
+local lastXP = nil
+local goldSource = nil -- Track pending gold source
+
+-- Helper to open options (compatible with different WoW versions)
+local function OpenOptions()
+    if Settings and Settings.OpenToCategory then
+        Settings.OpenToCategory("ActionTracker")
+    elseif InterfaceOptionsFrame_OpenToCategory then
+        InterfaceOptionsFrame_OpenToCategory("ActionTracker")
+        InterfaceOptionsFrame_OpenToCategory("ActionTracker")
+    end
+end
 
 function ActionTracker:OnInitialize()
     -- Initialize database with defaults
@@ -28,17 +40,29 @@ function ActionTracker:OnInitialize()
     -- Cache player info
     playerGUID = UnitGUID("player")
     playerName = UnitName("player")
+    lastXP = UnitXP("player")
 end
 
 function ActionTracker:OnEnable()
     -- Register combat log event
     self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 
-    -- Register other events for economy/lifestyle
+    -- XP tracking
+    self:RegisterEvent("PLAYER_XP_UPDATE")
+    self:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN")
+
+    -- Gold tracking
     self:RegisterEvent("PLAYER_MONEY")
+    self:RegisterEvent("MERCHANT_SHOW")
+    self:RegisterEvent("MERCHANT_CLOSED")
+    self:RegisterEvent("MAIL_SHOW")
+    self:RegisterEvent("MAIL_CLOSED")
+    self:RegisterEvent("QUEST_COMPLETE")
+    self:RegisterEvent("CHAT_MSG_MONEY")
+
+    -- Other events
     self:RegisterEvent("CHAT_MSG_LOOT")
     self:RegisterEvent("QUEST_TURNED_IN")
-    self:RegisterEvent("PLAYER_XP_UPDATE")
     self:RegisterEvent("PLAYER_DEAD")
 
     self:Print("ActionTracker enabled. Use /at to open statistics.")
@@ -54,8 +78,7 @@ function ActionTracker:SlashCommand(input)
     if cmd == "" or cmd == "show" then
         self:ToggleUI()
     elseif cmd == "config" or cmd == "options" then
-        InterfaceOptionsFrame_OpenToCategory("ActionTracker")
-        InterfaceOptionsFrame_OpenToCategory("ActionTracker")
+        OpenOptions()
     elseif cmd == "reset" then
         self:Print("Use /at reset combat|economy|lifestyle|all")
     elseif cmd:match("^reset%s+(%w+)$") then
@@ -124,18 +147,80 @@ function ActionTracker:PLAYER_DEAD()
     self:TrackDeath()
 end
 
+-- XP Tracking
+function ActionTracker:CHAT_MSG_COMBAT_XP_GAIN(event, msg)
+    -- Parse XP from kill message: "Mob Name dies, you gain X experience."
+    local xp = msg:match("you gain (%d+) experience")
+    if xp then
+        self:TrackXPFromKill(tonumber(xp))
+    end
+end
+
+function ActionTracker:PLAYER_XP_UPDATE()
+    -- This fires for all XP gains, we use CHAT_MSG_COMBAT_XP_GAIN for kill XP
+    -- Quest XP is tracked in QUEST_TURNED_IN
+end
+
+-- Gold source tracking
+function ActionTracker:MERCHANT_SHOW()
+    goldSource = "vendor"
+end
+
+function ActionTracker:MERCHANT_CLOSED()
+    goldSource = nil
+end
+
+function ActionTracker:MAIL_SHOW()
+    goldSource = "mail"
+end
+
+function ActionTracker:MAIL_CLOSED()
+    goldSource = nil
+end
+
+function ActionTracker:QUEST_COMPLETE()
+    goldSource = "quest"
+end
+
+function ActionTracker:CHAT_MSG_MONEY(event, msg)
+    -- Parse gold from loot: "You loot X Gold Y Silver Z Copper"
+    local gold = msg:match("(%d+) Gold") or 0
+    local silver = msg:match("(%d+) Silver") or 0
+    local copper = msg:match("(%d+) Copper") or 0
+
+    local total = (tonumber(gold) or 0) * 10000 + (tonumber(silver) or 0) * 100 + (tonumber(copper) or 0)
+
+    if total > 0 then
+        self:TrackGoldFromSource(total, "loot")
+    end
+end
+
 function ActionTracker:PLAYER_MONEY()
     local currentGold = GetMoney()
     local data = self:GetCharacterData()
 
     if data.economy.lastKnownGold then
         local diff = currentGold - data.economy.lastKnownGold
+
         if diff > 0 then
-            data.economy.goldEarned = (data.economy.goldEarned or 0) + diff
+            -- Gold gained
+            if goldSource == "vendor" then
+                self:TrackGoldFromSource(diff, "vendor")
+            elseif goldSource == "mail" then
+                self:TrackGoldFromSource(diff, "mail")
+            elseif goldSource == "quest" then
+                self:TrackGoldFromSource(diff, "quest")
+                goldSource = nil -- Reset after quest reward
+            else
+                -- Unknown source (could be trade, AH, etc.)
+                data.economy.goldEarned = (data.economy.goldEarned or 0) + diff
+            end
         elseif diff < 0 then
+            -- Gold spent
             data.economy.goldSpent = (data.economy.goldSpent or 0) + math.abs(diff)
         end
     end
+
     data.economy.lastKnownGold = currentGold
 end
 
@@ -147,10 +232,16 @@ end
 function ActionTracker:QUEST_TURNED_IN(event, questId, xpReward, moneyReward)
     local data = self:GetCharacterData()
     data.economy.questsCompleted = (data.economy.questsCompleted or 0) + 1
-end
 
-function ActionTracker:PLAYER_XP_UPDATE()
-    -- Future: track XP gained
+    -- Track XP from quest
+    if xpReward and xpReward > 0 then
+        self:TrackXPFromQuest(xpReward)
+    end
+
+    -- Track gold from quest (moneyReward is in copper)
+    if moneyReward and moneyReward > 0 then
+        self:TrackGoldFromSource(moneyReward, "quest")
+    end
 end
 
 -- Minimap Button Setup
@@ -167,8 +258,7 @@ function ActionTracker:SetupMinimapButton()
             if button == "LeftButton" then
                 self:ToggleUI()
             elseif button == "RightButton" then
-                InterfaceOptionsFrame_OpenToCategory("ActionTracker")
-                InterfaceOptionsFrame_OpenToCategory("ActionTracker")
+                OpenOptions()
             end
         end,
         OnTooltipShow = function(tooltip)
@@ -202,6 +292,9 @@ function ActionTracker:PrintSummary()
     self:Print(string.format("Total Healing: %s", self:FormatNumber(data.combat.totalHealing)))
     self:Print(string.format("Damage Taken: %s", self:FormatNumber(data.combat.totalDamageTaken)))
     self:Print(string.format("Kills: %d | Deaths: %d", data.combat.totalKills, data.combat.deaths))
+    self:Print(string.format("XP from Kills: %s | XP from Quests: %s",
+        self:FormatNumber(data.combat.xpFromKills or 0),
+        self:FormatNumber(data.economy.xpFromQuests or 0)))
 
     local sorted = self:GetSortedAbilities(data.combat.abilities, "count")
     if #sorted > 0 then
@@ -264,6 +357,17 @@ function ActionTracker:GenerateExportText(data)
         string.format("Total Damage Taken: %s", self:FormatNumber(data.combat.totalDamageTaken)),
         string.format("Total Kills: %d", data.combat.totalKills),
         string.format("Total Deaths: %d", data.combat.deaths),
+        string.format("XP from Kills: %s", self:FormatNumber(data.combat.xpFromKills or 0)),
+        "",
+        "--- Economy Summary ---",
+        string.format("Gold Earned: %s", GetCoinTextureString(data.economy.goldEarned or 0)),
+        string.format("  From Vendors: %s", GetCoinTextureString(data.economy.goldFromVendor or 0)),
+        string.format("  From Mail: %s", GetCoinTextureString(data.economy.goldFromMail or 0)),
+        string.format("  From Loot: %s", GetCoinTextureString(data.economy.goldFromLoot or 0)),
+        string.format("  From Quests: %s", GetCoinTextureString(data.economy.goldFromQuest or 0)),
+        string.format("Gold Spent: %s", GetCoinTextureString(data.economy.goldSpent or 0)),
+        string.format("Quests Completed: %d", data.economy.questsCompleted or 0),
+        string.format("XP from Quests: %s", self:FormatNumber(data.economy.xpFromQuests or 0)),
         "",
         "--- Abilities (by usage count) ---",
     }
