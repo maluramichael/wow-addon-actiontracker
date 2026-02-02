@@ -10,8 +10,23 @@ exclude_files = {
     "Libs/",
 }
 
+-- Ignore common WoW addon patterns
+ignore = {
+    "211/_.*",      -- Unused variables starting with _
+    "211/addonName", -- Common unused addon name
+    "212/self",     -- Unused self in methods
+    "212/event",    -- Unused event argument
+    "212/msg",      -- Unused msg argument
+    "212/questId",  -- Unused questId
+    "212/mobGUID",  -- Unused mobGUID
+    "213",          -- Unused loop variables
+    "311",          -- Value assigned to variable is unused
+    "631",          -- Line too long (disabled via max_line_length)
+}
+
 -- Globals we define
 globals = {
+    "_G",
     "ActionTracker",
     "BINDING_HEADER_ACTIONTRACKER",
     "BINDING_NAME_ACTIONTRACKER_TOGGLE",
@@ -20,11 +35,11 @@ globals = {
 -- WoW API globals (read-only)
 read_globals = {
     -- Lua
-    "_G",
     "date",
     "format",
     "pairs",
     "ipairs",
+    "next",
     "select",
     "string",
     "table",
@@ -41,6 +56,7 @@ read_globals = {
     "CreateFrame",
     "GetMoney",
     "GetCoinTextureString",
+    "GetRealmName",
     "GetTime",
     "UnitGUID",
     "UnitName",
