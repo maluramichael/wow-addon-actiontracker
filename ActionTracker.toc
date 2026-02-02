@@ -3,6 +3,7 @@
 ## Notes: Comprehensive statistics tracker for abilities, combat, economy, and more
 ## Author: Michael Malura
 ## Version: 1.0.0
+## X-Curse-Project-ID: 1451687
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## Category-enUS: Combat
 ## Category-deDE: Kampf
