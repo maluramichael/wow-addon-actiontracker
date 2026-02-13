@@ -1,5 +1,5 @@
 <Bindings>
-	<Binding name="ACTIONTRACKER_TOGGLE" category="ActionTracker">
+	<Binding name="ACTIONTRACKER_TOGGLE" header="BINDING_HEADER_ACTIONTRACKER" runOnUp="false">
 		ActionTracker:Toggle()
 	</Binding>
 </Bindings>

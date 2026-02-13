@@ -9,8 +9,8 @@ _G["ActionTracker"] = ActionTracker
 -- Player info cache
 local playerGUID = nil
 local playerName = nil
-local lastXP = nil
 local goldSource = nil -- Track pending gold source
+local timePlayedReceived = false -- Suppress default chat output on first request
 
 -- Helper to open options (compatible with different WoW versions)
 local function OpenOptions()
@@ -40,7 +40,6 @@ function ActionTracker:OnInitialize()
     -- Cache player info
     playerGUID = UnitGUID("player")
     playerName = UnitName("player")
-    lastXP = UnitXP("player")
 end
 
 function ActionTracker:OnEnable()
@@ -64,6 +63,15 @@ function ActionTracker:OnEnable()
     self:RegisterEvent("CHAT_MSG_LOOT")
     self:RegisterEvent("QUEST_TURNED_IN")
     self:RegisterEvent("PLAYER_DEAD")
+
+    -- Playtime tracking
+    self:RegisterEvent("TIME_PLAYED_MSG")
+    self:RegisterEvent("PLAYER_LEVEL_UP")
+    timePlayedReceived = false
+    RequestTimePlayed()
+
+    -- Store character metadata
+    self:UpdateCharacterMeta()
 
     self:Print("ActionTracker enabled. Use /at to open statistics.")
 end
@@ -104,8 +112,8 @@ end
 
 -- Combat Log Event Handler
 function ActionTracker:COMBAT_LOG_EVENT_UNFILTERED()
-    local timestamp, subevent, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags,
-          destGUID, destName, destFlags, destRaidFlags = CombatLogGetCurrentEventInfo()
+    local _, subevent, _, sourceGUID, _, _, _,
+          destGUID, destName = CombatLogGetCurrentEventInfo()
 
     -- Only track player's actions
     if sourceGUID == playerGUID then
@@ -114,7 +122,7 @@ function ActionTracker:COMBAT_LOG_EVENT_UNFILTERED()
             self:TrackAbilityUse(spellId, spellName)
 
         elseif subevent == "SPELL_DAMAGE" or subevent == "SPELL_PERIODIC_DAMAGE" then
-            local spellId, spellName, spellSchool, amount = select(12, CombatLogGetCurrentEventInfo())
+            local spellId, spellName, _, amount = select(12, CombatLogGetCurrentEventInfo())
             self:TrackDamage(spellId, spellName, amount or 0)
 
         elseif subevent == "SWING_DAMAGE" then
@@ -123,7 +131,7 @@ function ActionTracker:COMBAT_LOG_EVENT_UNFILTERED()
             self:TrackAbilityUse(0, "Melee")
 
         elseif subevent == "SPELL_HEAL" or subevent == "SPELL_PERIODIC_HEAL" then
-            local spellId, spellName, spellSchool, amount = select(12, CombatLogGetCurrentEventInfo())
+            local spellId, spellName, _, amount = select(12, CombatLogGetCurrentEventInfo())
             self:TrackHealing(spellId, spellName, amount or 0)
 
         elseif subevent == "PARTY_KILL" then
@@ -242,6 +250,20 @@ function ActionTracker:QUEST_TURNED_IN(event, questId, xpReward, moneyReward)
     if moneyReward and moneyReward > 0 then
         self:TrackGoldFromSource(moneyReward, "quest")
     end
+end
+
+-- Playtime tracking
+function ActionTracker:TIME_PLAYED_MSG(event, totalTime, levelTime)
+    if not totalTime or totalTime <= 0 then return end
+    local data = self:GetCharacterData()
+    data.lifestyle.timePlayed = totalTime
+    if not timePlayedReceived then
+        timePlayedReceived = true
+    end
+end
+
+function ActionTracker:PLAYER_LEVEL_UP()
+    self:UpdateCharacterMeta()
 end
 
 -- Minimap Button Setup

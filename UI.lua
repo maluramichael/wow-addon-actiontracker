@@ -229,34 +229,144 @@ function ActionTracker:DrawEconomyTab(container)
     end
 end
 
+local function FormatPlaytime(seconds)
+    if not seconds or seconds <= 0 then return "0m" end
+    local days = math.floor(seconds / 86400)
+    local hours = math.floor((seconds % 86400) / 3600)
+    local minutes = math.floor((seconds % 3600) / 60)
+    if days > 0 then
+        return string.format("%dd %dh %dm", days, hours, minutes)
+    elseif hours > 0 then
+        return string.format("%dh %dm", hours, minutes)
+    else
+        return string.format("%dm", minutes)
+    end
+end
+
+local function GetClassColor(classEnglish)
+    if classEnglish and RAID_CLASS_COLORS and RAID_CLASS_COLORS[classEnglish] then
+        local c = RAID_CLASS_COLORS[classEnglish]
+        return string.format("%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
+    end
+    return "ffffff"
+end
+
 function ActionTracker:DrawLifestyleTab(container)
-    local data = self:GetCharacterData()
-    local lifestyle = data.lifestyle
+    -- Collect all characters with playtime data
+    local characters = {}
+    local totalTime = 0
 
-    local group = AceGUI:Create("InlineGroup")
-    group:SetTitle("Lifestyle Statistics")
-    group:SetFullWidth(true)
-    group:SetLayout("Flow")
-    container:AddChild(group)
-
-    local stats = {
-        {label = "Time Played", value = tostring(lifestyle.timePlayed or 0) .. " seconds"},
-        {label = "Distance Traveled", value = tostring(lifestyle.distanceTraveled or 0) .. " yards"},
-        {label = "Emotes Used", value = tostring(lifestyle.emotesUsed or 0)},
-        {label = "Whispers Sent", value = tostring(lifestyle.whispersSent or 0)},
-    }
-
-    for _, stat in ipairs(stats) do
-        local label = AceGUI:Create("Label")
-        label:SetText(string.format("|cffffd700%s:|r %s", stat.label, stat.value))
-        label:SetFullWidth(true)
-        group:AddChild(label)
+    for charKey, charData in pairs(self.db.profile.characters) do
+        if charKey ~= "" and charData.lifestyle then
+            local time = charData.lifestyle.timePlayed or 0
+            local meta = charData.meta or {}
+            table.insert(characters, {
+                key = charKey,
+                faction = meta.faction or "Unknown",
+                class = meta.class or "Unknown",
+                classEnglish = meta.classEnglish or "WARRIOR",
+                race = meta.race or "",
+                level = meta.level or 0,
+                timePlayed = time,
+            })
+            totalTime = totalTime + time
+        end
     end
 
-    local note = AceGUI:Create("Label")
-    note:SetText("\n|cff888888Lifestyle tracking is planned for future updates.|r")
-    note:SetFullWidth(true)
-    container:AddChild(note)
+    -- Sort by faction, then class, then time descending
+    table.sort(characters, function(a, b)
+        if a.faction ~= b.faction then return a.faction < b.faction end
+        if a.class ~= b.class then return a.class < b.class end
+        return a.timePlayed > b.timePlayed
+    end)
+
+    -- Total playtime header
+    local totalGroup = AceGUI:Create("InlineGroup")
+    totalGroup:SetTitle("Playtime Overview")
+    totalGroup:SetFullWidth(true)
+    totalGroup:SetLayout("List")
+    container:AddChild(totalGroup)
+
+    local totalLabel = AceGUI:Create("Label")
+    totalLabel:SetText(string.format("|cffffd700Total Playtime:|r  |cffffffff%s|r  |cff888888(%d characters)|r",
+        FormatPlaytime(totalTime), #characters))
+    totalLabel:SetFullWidth(true)
+    totalGroup:AddChild(totalLabel)
+
+    if #characters == 0 then
+        local note = AceGUI:Create("Label")
+        note:SetText("\n|cff888888No playtime data yet. Log in to each character to record playtime.|r")
+        note:SetFullWidth(true)
+        container:AddChild(note)
+        return
+    end
+
+    -- Group by faction
+    local factions = {}
+    local factionOrder = {}
+    for _, char in ipairs(characters) do
+        if not factions[char.faction] then
+            factions[char.faction] = { time = 0, classes = {}, classOrder = {} }
+            table.insert(factionOrder, char.faction)
+        end
+        local f = factions[char.faction]
+        f.time = f.time + char.timePlayed
+
+        if not f.classes[char.class] then
+            f.classes[char.class] = { time = 0, classEnglish = char.classEnglish, chars = {} }
+            table.insert(f.classOrder, char.class)
+        end
+        local cl = f.classes[char.class]
+        cl.time = cl.time + char.timePlayed
+        table.insert(cl.chars, char)
+    end
+
+    -- Draw faction groups
+    for _, factionName in ipairs(factionOrder) do
+        local fData = factions[factionName]
+
+        local factionGroup = AceGUI:Create("InlineGroup")
+        factionGroup:SetTitle(string.format("%s  -  %s", factionName, FormatPlaytime(fData.time)))
+        factionGroup:SetFullWidth(true)
+        factionGroup:SetLayout("List")
+        container:AddChild(factionGroup)
+
+        -- Faction header color
+        if factionGroup.content then
+            local bg = factionGroup.content:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints()
+            if factionName == "Horde" then
+                bg:SetColorTexture(0.6, 0.1, 0.1, 0.06)
+            elseif factionName == "Alliance" then
+                bg:SetColorTexture(0.1, 0.2, 0.6, 0.06)
+            end
+        end
+
+        for _, className in ipairs(fData.classOrder) do
+            local clData = fData.classes[className]
+            local cColor = GetClassColor(clData.classEnglish)
+
+            -- Class header
+            local classHeader = AceGUI:Create("Label")
+            classHeader:SetText(string.format("  |cff%s%s|r  |cff888888-  %s|r",
+                cColor, className, FormatPlaytime(clData.time)))
+            classHeader:SetFullWidth(true)
+            classHeader:SetFontObject(GameFontNormal)
+            factionGroup:AddChild(classHeader)
+
+            -- Character rows
+            for _, char in ipairs(clData.chars) do
+                local name = char.key:match("^(.+)-") or char.key
+                local realm = char.key:match("-(.+)$") or ""
+                local row = AceGUI:Create("Label")
+                row:SetText(string.format(
+                    "      |cff%s%s|r  |cff666666%s|r  |cffaaaaaa%s|r  |cffffd700Lv %d|r  |cffffffff%s|r",
+                    cColor, name, realm, char.race, char.level, FormatPlaytime(char.timePlayed)))
+                row:SetFullWidth(true)
+                factionGroup:AddChild(row)
+            end
+        end
+    end
 end
 
 function ActionTracker:DrawAccountTab(container)

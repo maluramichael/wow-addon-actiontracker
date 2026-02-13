@@ -123,8 +123,20 @@ function ActionTracker:GetCharacterData()
     if not data.economy.goldFromLoot then data.economy.goldFromLoot = 0 end
     if not data.economy.goldFromQuest then data.economy.goldFromQuest = 0 end
     if not data.economy.xpFromQuests then data.economy.xpFromQuests = 0 end
+    if not data.meta then data.meta = {} end
 
     return data
+end
+
+function ActionTracker:UpdateCharacterMeta()
+    local data = self:GetCharacterData()
+    local _, classEnglish = UnitClass("player")
+    local localizedClass = UnitClass("player")
+    data.meta.faction = UnitFactionGroup("player")
+    data.meta.class = localizedClass
+    data.meta.classEnglish = classEnglish
+    data.meta.level = UnitLevel("player")
+    data.meta.race = UnitRace("player")
 end
 
 function ActionTracker:GetAccountData()

@@ -1,4 +1,6 @@
--- Luacheck configuration for WoW TBC Classic addon
+-- Luacheck configuration for ActionTracker
+-- WoW Classic addon
+
 std = "lua51"
 codes = true
 quiet = 1
@@ -8,17 +10,17 @@ exclude_files = {
     ".release/",
     "libs/",
     "Libs/",
+    ".git/",
 }
 
--- Ignore common WoW addon patterns
 ignore = {
-    "21.",          -- All unused variable warnings (W211, W212, W213)
-    "231",          -- Variable never accessed
+    "212",          -- Unused argument (common in event handlers)
+    "213",          -- Unused loop variable
     "311",          -- Value assigned to variable is unused
-    "631",          -- Line too long
+    "211/addonName", -- Unused addonName from addon bootstrap
 }
 
--- Globals we define
+-- Addon-specific globals
 globals = {
     "_G",
     "ActionTracker",
@@ -26,49 +28,46 @@ globals = {
     "BINDING_NAME_ACTIONTRACKER_TOGGLE",
 }
 
--- WoW API globals (read-only)
+-- WoW API globals
 read_globals = {
-    -- Lua
-    "date",
-    "format",
-    "pairs",
-    "ipairs",
-    "next",
-    "select",
-    "string",
-    "table",
-    "math",
-    "tonumber",
-    "tostring",
-    "type",
-    "unpack",
+    -- Lua standard
+    "abs", "ceil", "floor", "max", "min", "mod", "random", "sqrt",
+    "format", "gmatch", "gsub", "strbyte", "strfind", "strlen", "strlower",
+    "strmatch", "strsub", "strupper", "strsplit", "strjoin", "strtrim",
+    "date", "time", "difftime",
+    "sort", "tinsert", "tremove", "wipe", "unpack",
+    "pairs", "ipairs", "next", "select", "type", "tonumber", "tostring",
+    "getmetatable", "setmetatable", "rawget", "rawset",
+    "pcall", "xpcall", "error", "assert", "loadstring",
+    "print", "debugstack",
 
     -- Libraries
     "LibStub",
 
-    -- WoW API
-    "CreateFrame",
-    "GetMoney",
-    "GetCoinTextureString",
-    "GetRealmName",
-    "GetTime",
-    "UnitGUID",
-    "UnitName",
-    "UnitXP",
-    "UnitXPMax",
-    "UnitLevel",
-    "CombatLogGetCurrentEventInfo",
-    "GetAddOnMetadata",
-    "InterfaceOptionsFrame_OpenToCategory",
-    "C_Timer",
+    -- Frame API
+    "CreateFrame", "UIParent", "GameTooltip", "GameFontNormal",
+    "GameFontNormalSmall", "GameFontHighlight", "GameFontHighlightSmall",
+    "BackdropTemplateMixin",
 
-    -- Frames
-    "UIParent",
-    "GameTooltip",
-    "Settings",
+    -- Unit API
+    "UnitName", "UnitGUID", "UnitLevel", "UnitClass", "UnitHealth", "UnitHealthMax",
+    "UnitXP", "UnitXPMax", "UnitExists", "UnitIsPlayer", "UnitAffectingCombat",
+    "UnitFactionGroup", "UnitRace",
+
+    -- Combat Log
+    "CombatLogGetCurrentEventInfo",
+
+    -- Money
+    "GetMoney", "GetCoinTextureString",
+
+    -- Misc API
+    "GetTime", "GetRealmName", "GetAddOnMetadata", "RequestTimePlayed",
+    "GetCursorPosition", "IsShiftKeyDown", "IsControlKeyDown", "IsAltKeyDown",
+    "PlaySound", "PlaySoundFile",
+    "InCombatLockdown", "InterfaceOptionsFrame_OpenToCategory",
+    "Settings", "C_Timer", "C_AddOns",
 
     -- Constants
-    "RAID_CLASS_COLORS",
-    "WOW_PROJECT_ID",
-    "WOW_PROJECT_BURNING_CRUSADE_CLASSIC",
+    "RAID_CLASS_COLORS", "SOUNDKIT",
+    "WOW_PROJECT_ID", "WOW_PROJECT_BURNING_CRUSADE_CLASSIC", "WOW_PROJECT_CLASSIC",
 }
