@@ -1,5 +1,10 @@
 # ActionTracker
 
+<!-- links:start -->
+[![Support me on Ko-fi](https://malura.de/assets/badge/kofi.svg)](https://malura.de/go/kofi?ref=wow-addon-actiontracker)
+[![Check out my page](https://malura.de/assets/badge/malura.svg)](https://malura.de/go/site?ref=wow-addon-actiontracker)
+<!-- links:end -->
+
 Comprehensive statistics tracker for World of Warcraft TBC Classic. Passively tracks your gameplay statistics including abilities used, damage dealt, kills, deaths, and more.
 
 ## Features
