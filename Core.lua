@@ -43,8 +43,11 @@ function ActionTracker:OnInitialize()
 end
 
 function ActionTracker:OnEnable()
-    -- Register combat log event
-    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    -- Register combat log event. The modern engine (Retail 12.x, WoW Forever 160xx) blocks it for addons.
+    local interface = select(4, GetBuildInfo())
+    if interface < 16000 or (interface >= 20000 and interface < 120000) then
+        self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    end
 
     -- XP tracking
     self:RegisterEvent("PLAYER_XP_UPDATE")

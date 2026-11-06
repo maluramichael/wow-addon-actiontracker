@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0] - 2026-11-06
+
+### Added
+- WoW Forever support (interface 16001)
+- Combat log stats (abilities, damage, healing, kills) are not tracked on WoW Forever, the client blocks the combat log for addons
+
 ## [1.1.3] - 2026-02-02
 
 ### Fixed

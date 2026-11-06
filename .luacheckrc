@@ -55,7 +55,7 @@ read_globals = {
     "UnitFactionGroup", "UnitRace",
 
     -- Combat Log
-    "CombatLogGetCurrentEventInfo",
+    "CombatLogGetCurrentEventInfo", "GetBuildInfo",
 
     -- Money
     "GetMoney", "GetCoinTextureString",
